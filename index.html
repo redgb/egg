@@ -1,0 +1,534 @@
+<html>
+<head>
+    <title>eggs</title>
+    <style>
+        body { margin: 0; }
+        canvas { width: 90%; height: 90% }
+        #score {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display:block;
+            color: white;
+            font-size: 70px;
+        }
+        #lost {
+            position: absolute;
+            top: 90px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display:block;
+            color: white;
+            font-size: 32px;
+        }
+        #info {
+            position: absolute;
+            top: 130px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display:block;
+            color: white;
+            font-size: 16px;
+        }
+    </style>
+    <script src="js/three.js"></script>
+    <script src="js/kibo.js"></script>
+    <script src="js/tween.js"></script>
+</head>
+<body>
+<!-- displays the user score-->
+<div id="score">Score: 0</div>
+<div id="lost">Lost eggs: 0</div>
+<div id="info">gold eggs score 3 points, other eggs score 1</div>
+
+<script>
+
+    //
+    //
+    //      VARIABLES
+    //
+    //
+
+    var points = 0;            
+    var failures = 0;           
+    var currentposition = 1;   
+    var generated;
+    var multiplier = 1;
+
+    var basketcoordinates = {   
+
+        1:
+
+            coordinates = {
+
+                x: -1.5,
+                y: -2.25
+
+            },
+
+        2:
+
+            coordinates = {
+
+                x: -1.5,
+                y: -0.5
+
+            },
+
+        3:
+
+            coordinates = {
+
+                x: -1.5,
+                y: 1.4
+
+            },
+
+        4:
+
+            coordinates = {
+
+                x: 1.5,
+                y: -2.25
+
+            },
+
+        5:
+
+            coordinates = {
+
+                x: 1.5,
+                y: -0.5
+
+            },
+
+        6:
+
+            coordinates = {
+
+                x: 1.5,
+                y: 1.4
+
+            }
+
+    };
+
+    var eggcoordinates = {     
+
+        1:
+
+            coordinates = {
+
+                x: -6,
+                y: -1.75
+
+            },
+
+        2:
+
+            coordinates = {
+
+                x: -6,
+                y: 0.2
+
+            },
+
+        3:
+
+            coordinates = {
+
+                x: -6,
+                y: 2.25
+
+            },
+
+        4:
+
+            coordinates = {
+
+                x: 6,
+                y: -1.75
+
+
+            },
+
+        5:
+
+            coordinates = {
+
+                x: 6,
+                y: 0.2
+            },
+
+        6:
+
+            coordinates = {
+
+                x: 6,
+                y: 2.25,
+
+            }
+
+    };
+
+    //
+    //
+    //      OBJECTS
+    //
+    //
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+    camera.position.z = 5;
+
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    var mapchicken = new THREE.TextureLoader().load( "pics/chicken.gif" );
+    var mapwolf = new THREE.TextureLoader().load( "pics/wolf.png" );
+    var mapbasket = new THREE.TextureLoader().load( "pics/basketnew.png" );
+
+    var chickenmaterial = new THREE.SpriteMaterial( { map: mapchicken, color: 0xffffff, fog: true } );
+    var wolfmaterial = new THREE.SpriteMaterial( { map: mapwolf, color: 0xffffff, fog: true } );
+    var basketmaterial = new THREE.SpriteMaterial( {map: mapbasket, color: 0xffffff, fog: true } );
+
+    var woodgeometry = new THREE.BoxGeometry( 6, 0.15, 0.15 );
+    var woodmaterial = new THREE.MeshBasicMaterial( {color: 0xc11414} );
+
+    var stickupperright = new THREE.Mesh( woodgeometry, woodmaterial );
+    var stickmiddleright = new THREE.Mesh( woodgeometry, woodmaterial );
+    var sticklowerright = new THREE.Mesh( woodgeometry, woodmaterial );
+    var stickupperleft = new THREE.Mesh( woodgeometry, woodmaterial );
+    var stickmiddleleft = new THREE.Mesh( woodgeometry, woodmaterial );
+    var sticklowerleft = new THREE.Mesh( woodgeometry, woodmaterial );
+
+    var chickenupperright = new THREE.Sprite( chickenmaterial );
+    var chickenmiddleright = new THREE.Sprite( chickenmaterial );
+    var chickenlowerright = new THREE.Sprite( chickenmaterial );
+    var chickenupperleft = new THREE.Sprite( chickenmaterial );
+    var chickenmiddleleft = new THREE.Sprite( chickenmaterial );
+    var chickenlowerleft = new THREE.Sprite( chickenmaterial );
+
+    var wolf = new THREE.Sprite( wolfmaterial );
+
+    var wolfbasket = new THREE.Sprite ( basketmaterial );
+
+    loader = new THREE.TextureLoader();
+    loader.load( 'pics/bg.jpg' , function( texture )
+    {
+
+        scene.background = texture;
+
+    });
+
+    //
+    //
+    //      EGG MAKING FUNCTIONS
+    //
+    //
+
+    class Egg {
+
+
+        constructor() {
+
+            var currentgenerate = generated;
+            this.islucky = false;
+
+            generated = Math.floor( Math.random() * 10 ) + 1;
+
+            if ( generated < 6 && generated !== currentgenerate ) {
+
+                var egg = this.createEgg(generated);
+                scene.add(egg);
+                this.handleTween(egg, this.islucky);
+
+            }
+
+        }
+
+        createEgg( generated ) {
+            var eggchance = Math.floor( ( Math.random() * 10 ) + 1 );   
+            var eggcolour = 0xf7f5b7;                                   
+
+            if ( eggchance % 2 === 0 ) {                                  
+
+                eggcolour = 0xa2bce5;                                   
+
+            }
+
+            else {                                                     
+
+                if ( eggchance === 7 ) {                                  
+
+                    eggcolour = 0xfff728;
+                    this.islucky = true;
+                    console.log(this.islucky);
+
+                }
+
+                else {                                                  
+
+                    if ( eggchance === 10 ) {                             
+
+                        eggcolour = 0xf7ceb7;                           
+
+                    }
+
+                }
+
+            }
+
+            var eggmaterial = new THREE.MeshBasicMaterial({color: eggcolour});
+            var egggeometry = new THREE.SphereGeometry(0.15, 32, 32);
+            var egg = new THREE.Mesh( egggeometry, eggmaterial );
+
+            var eggdictionary = eggcoordinates[generated];              
+            egg.position.x = eggdictionary["x"];                 
+            egg.position.y = eggdictionary["y"];
+
+            egg.name = generated;
+
+            return( egg );                                                
+        }
+
+        handleTween ( egg, islucky ) {
+            if ( egg.name === 4 || egg.name === 5 || egg.name === 6 ) {
+
+                var target = { x : egg.position.x - 4, y: egg.position.y - 0.4 };
+
+            }
+            else {
+                var target = { x : egg.position.x + 4, y: egg.position.y - 0.4 };
+            }
+            var position = { x : egg.position.x, y: egg.position.y };
+
+
+            var tween = new TWEEN.Tween( position )
+                .to(target, 2500)
+                .easing( TWEEN.Easing.Quadratic.Out )
+                .onUpdate( function() {
+
+                    egg.position.x = position.x;
+                    egg.position.y = position.y;
+
+                }).onComplete(function() {
+
+                    if ( egg.name !== currentposition ) {
+                        failures++;
+                        var elem = document.getElementById( 'lost' );
+                        elem.innerHTML = "Lost eggs: " + failures;
+
+                        // if ( failures === 10 || failures > 10 ) {
+                        //
+                        //     alert("you lost 10 eggs and lost the game");
+                        //     location.reload(true);
+                        //
+                        // }
+
+                        var eggposition = { x : egg.position.x, y: egg.position.y };
+                        var eggtarget = { x : egg.position.x, y: -6 };
+
+                        var tweenegg = new TWEEN.Tween( eggposition )
+                            .to(eggtarget, 1000)
+                            .easing( TWEEN.Easing.Quadratic.Out )
+                            .onUpdate( function() {
+
+                                egg.position.x = eggposition.x;
+                                egg.position.y = eggposition.y;
+
+                            }).onComplete(function() {
+
+                                scene.remove( egg );
+
+                            })
+                            .start();
+
+                    }
+
+                    else {
+
+                        if ( islucky !== true ) {
+
+                            points++;
+
+                        }
+
+                        else {
+
+                            points += 3;
+                            console.log("lucky egg");
+
+                        }
+
+                        var elem = document.getElementById( 'score' );
+                        elem.innerHTML = "Score: " + points;
+                        scene.remove( egg );
+
+                    }
+
+                })
+                .start();
+
+        }
+
+    }
+
+    //
+    //
+    //      SET OBJECT POSITIONS
+    //
+    //
+
+
+    chickenlowerleft.position.x = -7;
+    chickenlowerleft.position.y = -1.2;
+    chickenmiddleleft.position.x = -7;
+    chickenmiddleleft.position.y = 0.45+0.35;
+    chickenupperleft.position.x = -7;
+    chickenupperleft.position.y = 2.45+0.35;
+    chickenlowerright.position.x = 7;
+    chickenlowerright.position.y = -1.2;
+    chickenmiddleright.position.x = 7;
+    chickenmiddleright.position.y = 0.45+0.35;
+    chickenupperright.position.x = 7;
+    chickenupperright.position.y = 2.45+0.35;
+
+    sticklowerleft.position.x = -5;
+    sticklowerleft.position.y = -2;
+    sticklowerleft.rotation.z = 3;
+    stickmiddleleft.position.x = -5;
+    stickmiddleleft.position.y = 0;
+    stickmiddleleft.rotation.z = 3;
+    stickupperleft.position.x = -5;
+    stickupperleft.position.y = 2;
+    stickupperleft.rotation.z = 3;
+    sticklowerright.position.x = 5;
+    sticklowerright.position.y = -2;
+    sticklowerright.rotation.z = -3;
+    stickmiddleright.position.x = 5;
+    stickmiddleright.position.y = 0;
+    stickmiddleright.rotation.z = -3;
+    stickupperright.position.x = 5;
+    stickupperright.position.y = 2;
+    stickupperright.rotation.z = -3;
+
+    wolfbasket.position.x = -1.5;
+    wolfbasket.position.y = -2.25;
+    wolfbasket.position.z = 0.05;
+    wolf.position.x = 0;
+    wolf.position.y = -2;
+
+    //
+    //
+    //      ADD OBJECTS TO SCENE
+    //
+    //
+
+    scene.add( sticklowerleft );
+    scene.add( chickenlowerleft );
+    scene.add( stickmiddleleft );
+    scene.add( chickenmiddleleft );
+    scene.add( stickupperleft );
+    scene.add( chickenupperleft );
+    scene.add( sticklowerright );
+    scene.add( chickenlowerright );
+    scene.add( stickmiddleright );
+    scene.add( chickenmiddleright );
+    scene.add( stickupperright );
+    scene.add( chickenupperright );
+
+    scene.add( wolfbasket );
+    scene.add( wolf );
+
+    //
+    //
+    //      KEY PRESS DETECTION
+    //
+    //
+
+    var keyboard = new Kibo(); 
+    
+    keyboard.up(['up'], function() {
+        
+        if( currentposition !== 6 && currentposition !== 3 ) {
+
+            currentposition = currentposition + 1;
+            currentpositiondictionary = basketcoordinates[currentposition];
+            wolfbasket.position.y = currentpositiondictionary["y"];
+            wolfbasket.position.x = currentpositiondictionary["x"];
+
+        }
+
+    });
+    
+    keyboard.up(['down'], function() {
+
+        if( currentposition !== 1 && currentposition !== 4 ) {
+
+            currentposition = currentposition - 1;
+            currentpositiondictionary = basketcoordinates[currentposition];
+            wolfbasket.position.y = currentpositiondictionary["y"];
+            wolfbasket.position.x = currentpositiondictionary["x"];
+
+        }
+
+    });
+    
+    keyboard.up(['left'], function() {
+
+        if( currentposition !== 1 && currentposition !== 2 && currentposition !== 3 ) {
+
+            currentposition = currentposition - 3;
+            currentpositiondictionary = basketcoordinates[currentposition];
+            wolfbasket.position.y = currentpositiondictionary["y"];
+            wolfbasket.position.x = currentpositiondictionary["x"];
+
+        }
+
+    });
+    
+    keyboard.up(['right'], function() {
+
+        if( currentposition !== 4 && currentposition !== 5 && currentposition !== 6 ) {
+
+            currentposition = currentposition + 3;
+            currentpositiondictionary = basketcoordinates[currentposition];
+            wolfbasket.position.y = currentpositiondictionary["y"];
+            wolfbasket.position.x = currentpositiondictionary["x"];
+
+        }
+
+    });
+
+    //
+    //
+    //      FINALLY RUN THE GAME
+    //
+    //
+
+    setInterval( function() { runGame() }, 1000 + ( points/100 ) * multiplier );
+    function runGame()
+    {
+
+        var egg = new Egg;
+
+    }
+
+    var animate = function () {
+
+        requestAnimationFrame( animate );
+        TWEEN.update();
+        renderer.render( scene, camera );
+
+    };
+
+    animate();
+</script>
+</body>
+</html>
