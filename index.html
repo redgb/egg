@@ -324,12 +324,12 @@
                         var elem = document.getElementById( 'lost' );
                         elem.innerHTML = "Lost eggs: " + failures;
 
-                        // if ( failures === 10 || failures > 10 ) {
-                        //
-                        //     alert("you lost 10 eggs and lost the game");
-                        //     location.reload(true);
-                        //
-                        // }
+                        if ( failures === 10 || failures > 10 ) {
+
+                            alert("you lost 10 eggs and lost the game");
+                            location.reload(true);
+
+                        }
 
                         var eggposition = { x : egg.position.x, y: egg.position.y };
                         var eggtarget = { x : egg.position.x, y: -6 };
